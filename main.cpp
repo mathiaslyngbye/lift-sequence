@@ -162,6 +162,42 @@ float similarity(std::string path1, std::string path2)
 
     return pct;
 }
+
+float similarity_hist(std::string path1, std::string path2)
+{
+    cv::Mat image1 = cv::imread(path1, cv::IMREAD_COLOR );
+    cv::Mat image2 = cv::imread(path2, cv::IMREAD_COLOR );
+    if( image1.empty() || image2.empty())
+    {
+        std::cout <<  "Could not open or find the image" << std::endl ;
+        return -1;
+    }
+
+    cv::cvtColor( image1, image1, cv::COLOR_BGR2HSV );
+    cv::cvtColor( image2, image2, cv::COLOR_BGR2HSV );
+    int h_bins = 50, s_bins = 60;
+    int histSize[] = { h_bins, s_bins };
+
+    // hue varies from 0 to 179, saturation from 0 to 255
+    float h_ranges[] = { 0, 180 };
+    float s_ranges[] = { 0, 256 };
+    const float* ranges[] = { h_ranges, s_ranges };
+
+    // Use the 0-th and 1-st channels
+    int channels[] = { 0, 1 };
+
+    cv::Mat hist_image1, hist_image2;
+    cv::calcHist( &image1, 1, channels, cv::Mat(), hist_image1, 2, histSize, ranges, true, false );
+    cv::normalize( hist_image1, hist_image1, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+    cv::calcHist( &image2, 1, channels, cv::Mat(), hist_image2, 2, histSize, ranges, true, false );
+    cv::normalize( hist_image2, hist_image2, 0, 1, cv::NORM_MINMAX, -1, cv::Mat() );
+
+    double compare = cv::compareHist( hist_image1, hist_image2, 1 );
+
+    //std::cout << compare << std::endl;
+    return compare;
+}
+
 void process_images(const std::vector<std::string> &paths)
 {
     std::string previous_path = paths[1];
@@ -171,7 +207,11 @@ void process_images(const std::vector<std::string> &paths)
     {
         if(VERBOSE)
             std::cout << path << std::endl;
-        float god_metric = 5*occupancy(path,0)+5*lightness(path)+10*similarity(previous_path,path);
+        float god_metric = 5*occupancy(path,0)+/*5*lightness(path)+*/4*similarity(previous_path,path);
+        //std::cout << 5*occupancy(path,0) << "+" << 5*lightness(path) << "+" << 2*similarity(previous_path,path) << std::endl;
+        //float god_metric = occupancy(path,0)+;
+        //float god_metric = similarity_hist(previous_path,path) + 0.5*occupancy(path,0);
+
         //std::cout << "God metric:\t\t" << god_metric << std::endl;
 
         if(god_metric > best_god_metric)
@@ -204,13 +244,13 @@ int main()
     std::vector<std::string> delimiters = {"_s", "_i", "_z", ".jpg"};
 
     std::vector<std::string> paths;
-    fetch_test_image_paths("/home/mal/MEGAsync/Images/garment-sequence-dark-e25", paths);
+    fetch_test_image_paths("/home/mal/MEGAsync/Images/garment-sequence-light-e25", paths);
 
     size_t index = 0;
     size_t sequence_index = 1;
     std::vector<std::string> sub_paths;
 
-    while (false)
+    while (true)
     {
         std::vector<int> image_data;
         get_data(image_data, paths[index], delimiters);
@@ -231,6 +271,8 @@ int main()
         }
     }
 
+    /*
+
     cv::namedWindow("Fastwindow", CV_WINDOW_AUTOSIZE);
     cv::Mat image = cv::imread("/home/mal/MEGAsync/Images/garment-sequence-dark-e25/export_s0019_i0019_z1167.jpg", cv::IMREAD_COLOR );
     if( image.empty() )
@@ -243,6 +285,7 @@ int main()
     cv::equalizeHist( image, image );
     cv::imshow("Fastwindow", image);
     cv::waitKey(0);
+    */
 
 
 
